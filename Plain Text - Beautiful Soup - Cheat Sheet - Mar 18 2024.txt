@@ -1,0 +1,1045 @@
+
+Beautiful Soup – Cheat Sheet
+Cheat sheet for Beautiful Soup version 4.12.3
+
+ 
+###
+### General stuff
+###
+
+# Read in a file and make soup
+from bs4 import BeautifulSoup
+with open(filename, "r", encoding="UTF-8") as f:
+  html = f.read()
+soup = BeautifulSoup(html, "html.parser")
+
+
+# Convert soup to a string, save to file
+html = str(soup)
+with open(filename, "w", encoding="UTF-8") as f:
+  f.write(html)
+
+
+# .get_text() - Remove all html tags
+text_only = soup.get_text() 
+
+
+# .prettify() - Prettify the HTML
+soup.prettify()
+
+ 
+###
+### Code snippet for testing ideas
+###
+
+from bs4 import BeautifulSoup
+html = """
+<html><head><title>The Dormouse's story</title></head>
+<body>
+<!--Comment-->
+<p class="title"><b>The Dormouse's story</b></p>
+<p class="story">Two sisters
+<a href="http://example.com/elsie" class="sister" id="link1">Elsie</a> and
+<a href="http://example.com/lacie" class="sister" id="link2">Lacie</a> 
+lived in a well.</p>
+<p class="story">...</p>
+</body>
+</html>
+"""
+soup = BeautifulSoup(html, "html.parser")
+
+ 
+###
+### .find() - Find tags
+###
+
+# Print <title>
+print(soup.title)
+
+# Note: if no title, this would print None
+
+
+# Find anchor with class="sister"
+a = soup.find("a", class_="sister")
+if a:
+  print("Anchor with class=sister found.")
+
+
+# Find anchor with no href
+a = soup.find("a", href=None)
+if a:
+  print("Anchor missing href found.")
+  
+  
+# Find nested tag
+if soup.find("head").find("link"):
+  print("Head section has link(s)")
+else:
+  print("Head section missing link(s)")
+
+ 
+###
+### .find_all() - Loop through Tags
+###
+
+   
+# .find_all("a") - Print all anchors
+for tag in soup.find_all("a"):
+  print("Anchor: ", tag)
+
+
+# soup("a") - Print all anchors - 2nd method
+for tag in soup("a"):
+  print("Anchor: ", tag)
+    
+
+# Find all anchors with no class
+for tag in soup.find_all("a", class_=None):
+  print("Anchor: ", tag)
+
+# “class” is a reserved word in Python,
+# and the only attribute that needs an
+# underscore "class_" when used
+# in find() or find_all()
+
+
+# Loop through multiple tag types at same time
+for tag in soup(["a","ul"]):
+  print("Tag: ", tag)
+
+
+# Print all tags, ignore text
+for tag in soup(True):
+  print("Tag: ", tag)
+  
+
+# Print nested tags 
+
+# Print anchors in the main section
+if soup.find("main"):
+  for tag in soup.main.find_all("a"):
+    print("\nAnchor in Main: ", tag)
+else:
+  print("Main section NOT found") 
+
+
+# To any of these loops you can add:
+  tag.extract()        # Delete the tags
+  tag.clear()          # Clear tag's contents
+  tag.replace_with()   # Replace tags with new tags
+  tag.insert_before()  # Insert new tags before tags
+  tag.insert_after()   # Insert after
+  tag.append()         # Append new tags inside tags
+  tag.wrap()           # Wrap tags inside new tags
+  tag.string           # View or change a tags text
+  tag.has_attrib()     # Test if a tag has an attribute
+  tag["attribute"] =   # Add/modify attribute
+  
+
+ 
+###
+### Find all Comments
+###
+
+from bs4 import BeautifulSoup
+from bs4 import Comment
+
+soup = BeautifulSoup(html, 'html.parser')
+for tag in soup.find_all(string=lambda text: isinstance(text, Comment)):
+  print("Comment: ", tag)
+
+#  Note:  soup.find_all("!--") does not work
+
+ 
+###
+### tag["attribute"] - View/Modify Attributes
+###
+
+from bs4 import BeautifulSoup
+markup = """<b class="blue">Some text</b>"""
+soup = BeautifulSoup(markup, "html.parser")
+tag = soup.b
+
+
+# .attrs - List a tag's attributes  
+for a in tag.attrs:
+  print("attr: ", a)   # class
+  
+  
+# .has_attr() - Test if tag has an attribute
+if tag.has_attr("class"):
+  print("Tag has class")
+  
+  
+# View attribute with tag["attribute"]  
+if tag.has_attr("class"):
+  a = tag["class"]
+  print("class: ", a)      # ["blue"]
+  print("type: ", type(a)) # <class 'list'>
+
+
+# View attribute with tag.get()
+a = tag.get("class")
+print("class: ", a)      # ["blue"]
+print("type: ", type(a)) # <class 'list'>
+
+# If no attribute, .get() returns None
+a = tag.get("id")
+print("id: ", a)       # None
+
+
+# Change attribute  
+
+# This changes the attribute from blue to red
+# and, as of version 4.12.3, also changes 
+# the type in the parse tree from list to string
+
+print("class: ", tag["class"] )      # ["blue"]
+print("class type: ", type(tag["class"])) # <class 'list'>
+
+tag["class"] = "red"
+
+print(soup)   # <b class="red">Some text</b>
+print("class type: ", type(tag["class"])) # <class 'str'>
+
+# This keeps the type in the parse tree a list
+
+tag["class"] = ["red"]
+
+print(soup)   # <b class="red">Some text</b>
+print("class type: ", type(tag["class"])) # <class 'list'>
+
+
+# Delete an attribute
+del tag["class"]
+print(tag)   # <b>Some text</b>
+
+
+# Multi-valued attribute in class   
+markup = """<b class="blue green purple">Some text</b>"""
+soup = BeautifulSoup(markup, "html.parser")
+
+print("class: ", tag["class"])  # ['blue', 'green' ,'purple']
+
+ 
+###
+### .strings and .find_all(string=)  - Loop through strings
+###
+
+# .strings
+for s in soup.strings:
+  print(repr(s))
+    
+    
+# .stripped_strings - Print strings with
+#    extra white space removed
+for s in soup.stripped_strings:
+  print(repr(s))
+  
+  
+# .find_all(string=) - Find strings using regexp  
+for s in soup.find_all(string=re.compile("and")):
+  print("String: ", repr(s))
+
+ 
+###
+### .string and .strings - View/Modify text
+###
+
+# Example of using .string
+from bs4 import BeautifulSoup
+soup = BeautifulSoup("<b>Some text</b>", "html.parser")
+
+print(soup.b.string)   # Some text
+
+# .string works if <b> is nested in <p>
+soup = BeautifulSoup("<p><b>Some text</b></p>", "html.parser")
+
+print(soup.p.b.string)   # Some text
+print(soup.p.string)     # Some text
+
+# But .string is None in this situation
+markup = "<b>Some <i>more</i> text</b>"
+soup = BeautifulSoup(markup, "html.parser")
+tag = soup.b
+
+print(tag)         # <b>Some <i>more</i> text</b>
+print(tag.string)  # None
+
+
+# If .string is None, try .strings or .get_text()
+markup = "<b>Some <i>more </i>text</b>"
+soup = BeautifulSoup(markup, "html.parser")
+tag = soup.b
+
+print("tag: ", tag)  
+ 
+# Tag has text if len(tag.get_text()) > 0
+if len(tag.get_text()) == 0:
+  print("No text")
+  
+elif tag.string:
+  print(".string: ", tag.string)
+  
+else:
+  print("Tag has text")     
+  print(".strings: ", list(tag.strings))  
+  print(".get_text(): ", tag.get_text()) 
+
+# tag: <b>Some <i>more </i>text</b>    
+# .strings:  ['Some ', 'more ', 'text']
+# .get_text(): Some more text   
+
+    
+# Comparing .string .strings and .get_text()
+
+# This how .string, .strings and .get_text()
+# respond to different tag structures
+
+def view_text(s):
+  soup = BeautifulSoup(s, "html.parser")
+  print()
+  print("#", soup)
+  print("# get_text():", repr(soup.get_text()))
+  print("# .string:   ", soup.p.string)
+  print("# .strings:  ", list(soup.p.strings))
+  print("# .strings count:", len(list(soup.p.strings)))
+
+# Try out different tag structures
+
+view_text("<p></p>")
+view_text("<p>some</p>")
+view_text("<p>some<b></b></p>")
+view_text("<p>some<b> more </b></p>")
+view_text("<p>some<b> more </b>text</p>")
+
+# Here's the output:
+
+# <p></p>
+# get_text(): ''
+# .string:    None
+# .strings:   []
+# .strings count: 0
+
+# <p>some</p>
+# get_text(): 'some'
+# .string:     some
+# .strings:   ['some']
+# .strings count: 1
+
+# Note --- empty tag next to string
+#    and .string becomes None
+
+# <p>some<b></b></p>
+# get_text(): 'some'
+# .string:    None
+# .strings:   ['some']
+# .strings count: 1
+
+# <p>some<b> more </b></p>
+# get_text(): 'some more '
+# .string:    None
+# .strings:   ['some', ' more ']
+# .strings count: 2
+
+# <p>some<b> more </b>text</p>
+# get_text(): 'some more text'
+# .string:    None
+# .strings:   ['some', ' more ', 'text']
+# .strings count: 3
+
+  
+# View/Modify text using .strings as a list
+markup = "<b>Some <i>more</i> text</b>"
+soup = BeautifulSoup(markup, "html.parser")
+tag = soup.b
+
+# .strings is an iterator so these throw errors:
+#    tag.strings[0]
+#    len(tag.strings)
+
+# But you can turn .strings into a list
+strings = list(tag.strings)
+
+print("strings[0]: ", strings[0])  
+print("strings[1]: ", strings[1]) 
+print("strings[2]: ", strings[2])  
+print("len(strings): ", len(strings))  
+
+# strings[0]: Some
+# strings[1]: more
+# strings[2]:  text
+# len(strings): 3
+
+# To modify text, use .replace_with()
+strings[0].replace_with("X")
+strings[1].replace_with("Y")
+strings[2].replace_with("Z")
+
+strings[0] = "A"   # This does not work
+
+print(soup)  # <b>X<i>Y</i>Z</b>
+
+# .replace_with() works with .strings
+#  but these methods throw errors:
+#
+#    .extract()
+#    .append("X")
+#    .insert_before("X")
+#    .insert_after("X")
+#    .insert(0, "X")
+#    .wrap(new_tag("u"))
+
+
+# View/Modify .strings that are direct children
+
+# Everything is the same as above...
+# ...except for how the list is created
+
+markup = "<b>Some <i>more</i> text</b>"
+soup = BeautifulSoup(markup, "html.parser")
+tag = soup.b
+
+strings = list(tag.find_all(string=True, recursive=False))
+
+print("strings[0]: ", strings[0])
+print("strings[1]: ", strings[1])
+print("len(strings): ", len(strings))
+
+# strings[0]: Some
+# strings[1]:  text
+# len(strings): 2
+
+strings[0].replace_with("X")
+strings[1].replace_with("Y")
+
+print(soup)  #  <b>X<i>more</i>Y</b>"
+ 
+ 
+# Replace text using .string
+from bs4 import BeautifulSoup
+soup = BeautifulSoup("<b>Some text</b>", "html.parser")
+tag = soup.b
+tag.string = "New text"
+
+print(soup)   # <b>New text</b>
+
+# CAREFUL when setting .string
+
+# Whatever is inside the tag will get replaced
+# with the new string.
+
+# That means any nested tags get deleted.
+
+markup = "<b>Some <i>more</i> text</b>"
+soup = BeautifulSoup(markup, "html.parser")
+tag = soup.b
+tag.string = "New text"
+
+print(soup)   # <b>New text</b>
+
+
+# Append text using .string
+soup = BeautifulSoup("<b>New text</b>", "html.parser")
+tag = soup.b
+tag.string += " - really new"
+
+print(soup)   # <b>New text - really new</b>
+
+
+# Can't add tags by modifying .string
+soup = BeautifulSoup("<b>Some text</b>", "html.parser")
+soup.b.string = "New <i>text</i>"
+print(soup)   # <b>New &amp;lt;i&amp;gt;text&amp;lt;/i&amp;gt;</b>
+
+# Instead use .new_tag() and .append()
+soup = BeautifulSoup("<b>Some text</b>", "html.parser")
+tag.string = "New "
+t = soup.new_tag("i")
+t.string = "text"
+tag.append(t)  
+
+# .append inserts the new tag inside
+#   the bold tag, at the end
+
+print(soup)   # <b>New <i>text</i></b>
+
+
+# Add text with .insert_before() .insert_after() .insert(0) or .append()
+markup = "<b>Some text</b>"
+soup = BeautifulSoup(markup, "html.parser")
+print(soup)   # <b>Some text</b>
+tag = soup.b
+tag.insert_before("BEFORE ")  
+tag.insert_after(" AFTER")
+tag.insert(0, "INSERT0 ")  # Insert inside tag
+tag.append(" APPEND") # Append inside tag, at the end
+
+print(soup)  
+# BEFORE <b>INSERT0 Some text APPEND</b> AFTER
+
+ 
+###
+### Loop through tag contents
+###
+
+# Different ways of iterating through 
+# the contents of a tag
+
+markup = """
+<div>
+<style>pre { overflow: auto; }</style>
+<script>var x = 0</script>
+<!--beautiful colors -->  
+<p>Colors - blue <b>red<u>or purple</u></b> and <i>green</i></p>
+<p>Shapes - circle <b>square</b> and <i>rectangle</i></p>
+</div> 
+"""
+
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(markup, "html.parser")
+print(soup, "\n")
+tag = soup.div
+
+# get_type() turns these:
+#   <class 'bs4.element.NavigableString'>
+#   <class 'bs4.element.Tag'>
+#   <class 'bs4.element.Stylesheet'>
+#   <class 'bs4.element.Script'>
+#   <class 'bs4.element.Comment'>
+# 
+# into these:
+#   String
+#   Tag
+#   Stylesheet
+#   Script
+#   Comment
+
+def get_type(item):
+  if "Tag" in str(type(item)):
+    return "Tag    "
+  elif "String" in str(type(item)):
+    return "String "
+  elif "Comment" in str(type(item)):
+    return "Comment"
+  elif "Stylesheet" in str(type(item)):
+    return "Stylesheet "
+  elif "Script" in str(type(item)):
+    return "Script "
+  else:
+    return str(type(item))
+
+
+# tag.contents
+
+print("\ntag.contents\n")
+for a in tag.contents:
+  print("#  ", get_type(a), repr(str(a)))
+
+#   String  '\n'
+#   Tag     '<style>pre { overflow: auto; }</style>'
+#   String  '\n'
+#   Tag     '<script>var x = 0</script>'
+#   String  '\n'
+#   Comment 'beautiful colors '
+#   String  '\n'
+#   Tag     '<p>Colors - blue <b>red<u>or purple</u></b> and <i>green</i></p>'
+#   String  '\n'
+#   Tag     '<p>Shapes - circle <b>square</b> and <i>rectangle</i></p>'
+#   String  '\n'
+
+
+# tag.children - Seems to be same as .contents
+
+print("\ntag.children\n")
+for a in tag.children:
+  print("#  ", get_type(a), repr(str(a)))
+
+#   String  '\n'
+#   Tag     '<style>pre { overflow: auto; }</style>'
+#   String  '\n'
+#   Tag     '<script>var x = 0</script>'
+#   String  '\n'
+#   Comment 'beautiful colors '
+#   String  '\n'
+#   Tag     '<p>Colors - blue <b>red<u>or purple</u></b> and <i>green</i></p>'
+#   String  '\n'
+#   Tag     '<p>Shapes - circle <b>square</b> and <i>rectangle</i></p>'
+#   String  '\n'
+
+
+# tag.next_elements - Iterates through nested tags and strings
+
+# This is the most comprehensive way of
+# walking through a tag.
+
+# For styles, first it shows the whole tag 
+# then the next line is the style sheet
+# inside the tag.
+#
+# The style sheet has the type:
+#    <class 'bs4.element.Stylesheet'>
+#
+# Same kinda thing with scripts except
+# with this type:
+#    <class 'bs4.element.Script'>
+
+print("\ntag.next_elements\n")
+for a in tag.next_elements:
+  print("#  ", get_type(a), repr(str(a)))
+
+#   String  '\n'
+#   Tag     '<style>pre { overflow: auto; }</style>'
+#   Stylesheet  'pre { overflow: auto; }'
+#   String  '\n'
+#   Tag     '<script>var x = 0</script>'
+#   Script  'var x = 0'
+#   String  '\n'
+#   Comment 'beautiful colors '
+#   String  '\n'
+#   Tag     '<p>Colors - blue <b>red<u>or purple</u></b> and <i>green</i></p>'
+#   String  'Colors - blue '
+#   Tag     '<b>red<u>or purple</u></b>'
+#   String  'red'
+#   Tag     '<u>or purple</u>'
+#   String  'or purple'
+#   String  ' and '
+#   Tag     '<i>green</i>'
+#   String  'green'
+#   String  '\n'
+#   Tag     '<p>Shapes - circle <b>square</b> and <i>rectangle</i></p>'
+#   String  'Shapes - circle '
+#   Tag     '<b>square</b>'
+#   String  'square'
+#   String  ' and '
+#   Tag     '<i>rectangle</i>'
+#   String  'rectangle'
+#   String  '\n'
+#   String  '\n'
+
+
+# tag.find_all_next() - Iterates through nested tags, skips strings and comments
+
+print("\ntag.find_all_next()\n")
+for a in tag.find_all_next():
+  print("#  ", get_type(a), repr(str(a)))
+
+#   Tag     '<style>pre { overflow: auto; }</style>'
+#   Tag     '<script>var x = 0</script>'
+#   Tag     '<p>Colors - blue <b>red<u>or purple</u></b> and <i>green</i></p>'
+#   Tag     '<b>red<u>or purple</u></b>'
+#   Tag     '<u>or purple</u>'
+#   Tag     '<i>green</i>'
+#   Tag     '<p>Shapes - circle <b>square</b> and <i>rectangle</i></p>'
+#   Tag     '<b>square</b>'
+#   Tag     '<i>rectangle</i>'
+
+
+# tag(True) - Same as .find_all_next()
+
+print("\ntag(True)\n")
+for a in tag(True):
+  print("#  ", get_type(a), repr(str(a)))
+
+#   Tag     '<style>pre { overflow: auto; }</style>'
+#   Tag     '<script>var x = 0</script>'
+#   Tag     '<p>Colors - blue <b>red<u>or purple</u></b> and <i>green</i></p>'
+#   Tag     '<b>red<u>or purple</u></b>'
+#   Tag     '<u>or purple</u>'
+#   Tag     '<i>green</i>'
+#   Tag     '<p>Shapes - circle <b>square</b> and <i>rectangle</i></p>'
+#   Tag     '<b>square</b>'
+#   Tag     '<i>rectangle</i>'
+
+
+# View tag as a list of tokens
+
+# This may not help anybody, but I thought
+# I would include it anyway
+
+import re
+ 
+s = str(soup.div)
+
+# Tokenize by placing a null before "<" 
+#   and after ">" , then split on null
+#   and remove empty strings
+
+s = re.sub(r"<", r"\0<", s, flags=re.DOTALL)
+s = re.sub(">", r">\0", s, flags=re.DOTALL)
+tokens = list(i for i in s.split(sep="\0")  if len(i)>0) 
+
+print("\nTokens\n")
+for line in tokens:
+  print("#", repr(line))
+
+# '<div>'
+# '\n'
+# '<style>'
+# 'pre { overflow: auto; }'
+# '</style>'
+# '\n'
+# '<script>'
+# 'var x = 0'
+# '</script>'
+# '\n'
+# '<!--beautiful colors -->'
+# '\n'
+# '<p>'
+# 'Colors - blue '
+# '<b>'
+# 'red'
+# '<u>'
+# 'or purple'
+# '</u>'
+# '</b>'
+# ' and '
+# '<i>'
+# 'green'
+# '</i>'
+# '</p>'
+# '\n'
+# '<p>'
+# 'Shapes - circle '
+# '<b>'
+# 'square'
+# '</b>'
+# ' and '
+# '<i>'
+# 'rectangle'
+# '</i>'
+# '</p>'
+# '\n'
+# '</div>'
+
+
+ 
+###
+### Navigating
+###
+
+markup  = "<div>Parent"
+markup += "<p>Sibling before</p>"
+markup += "<p id=\"Here\">You are here"
+markup +=    "<b>Child 1</b><i>Child 2</i></p>"
+markup += "<p>Sibling after</p>"
+markup += "</div>"
+
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(markup, "html.parser")
+print(soup, "\n")
+
+tag = soup.find("p", id="Here")
+print("# tag: \n  ", tag)
+print("\n# tag.parent: ")
+print("#  ", tag.parent)
+print("\n# tag.previous_sibling: ", tag.previous_sibling)
+print("\n# tag.next_sibling:     ", tag.next_sibling)
+print("\n# tag.previous_element: ", tag.previous_element)
+print("\n# tag.next_element:     ", tag.next_element)
+print("\n# tag.children:")
+for child in tag.children:
+  print("#  ", child)
+
+
+# tag: 
+#  <p id="Here">You are here<b>Child 1</b><i>Child 2</i></p>
+
+# tag.parent:  
+#  <div>Parent
+#  <p>Sibling before</p>
+#  <p id="Here">You are here<b>Child 1</b><i>Child 2</i></p>
+#  <p>Sibling after</p></div>
+
+# tag.previous_sibling:  <p>Sibling before</p>
+
+# tag.next_sibling:      <p>Sibling after</p>
+
+# tag.previous_element:  Sibling before
+
+# tag.next_element:      You are here
+
+# tag.children: 
+#   You are here
+#   <b>Child 1</b>
+#   <i>Child 2</i>
+
+ 
+###
+### Replace a tag with HTML
+###
+ 
+# Place html in a string, convert the string
+# into a soup tag, and then put the soup tag 
+# into the parse tree using either replace_with()
+# append() or one of the insert methods.
+
+markup = """
+<div>
+<p>Colors - blue <b>red<u>or purple</u></b> and <i>green</i></p>
+</div> 
+"""
+
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(markup, "html.parser")
+
+# Put HTML into a string
+s = "<p>Shapes - circle <b>square</b> and <i>rectangle</i></p>"
+
+# Make a soup tag
+new_tag = BeautifulSoup(s, "html.parser")
+
+# Replace the existing p tag
+soup.p.replace_with(new_tag)
+
+print(soup)
+
+# <div>
+# <p>Shapes - circle <b>square</b> and <i>rectangle</i></p>
+# </div> 
+
+ 
+###
+### .new_tag() - Create new tag
+###
+
+# Use .new_tag() in combination with 
+#   .insert_before()  .insert_after()  .append()
+#   .insert()  .wrap()  or  .replace_with()
+
+from bs4 import BeautifulSoup
+soup = BeautifulSoup("<b></b>", "html.parser")
+new_tag = soup.new_tag("a", href="http://www.example.com")
+new_tag.string = "Link to example"
+
+# b.append(new_tag) places new_tag
+#    inside bold tag, at end
+soup.b.append(new_tag)
+print(soup)   
+
+# <b><a href="http://www.example.com">Link to example</a></b>
+
+ 
+###
+###  .insert_before()  .insert_after(), .insert(0) and .append()
+###
+
+  
+# These work with both tags and strings
+
+from bs4 import BeautifulSoup
+
+# .insert_before() 
+soup = BeautifulSoup("<b>Some text</b>", "html.parser")
+new_tag = soup.new_tag("i")
+new_tag.string = "INSERT_BEFORE"
+print("\n", soup)   # <b>Some text</b>
+
+soup.b.insert_before(new_tag)
+print("\n", soup)   # <i>INSERT_BEFORE</i><b>Some text</b>
+
+soup.b.insert_before(" String_Before ")
+print("\n", soup)   # <i>INSERT_BEFORE</i> String_Before <b>Some text</b>
+
+# .insert_after()
+soup = BeautifulSoup("<b>Some text</b>", "html.parser")
+new_tag = soup.new_tag("i")
+new_tag.string = "INSERT_AFTER"
+print("\n", soup)   # <b>Some text</b>
+
+soup.b.insert_after(new_tag)
+print("\n", soup)   #  <b>Some text</b><i>INSERT_AFTER</i>
+
+soup.b.insert_after(" String_After ")
+print("\n", soup)   #  <b>Some text</b> String_After <i>INSERT_AFTER</i>
+
+# .insert(0) - Insert inside a tag
+soup = BeautifulSoup("<b>Some text</b>", "html.parser")
+new_tag = soup.new_tag("i")
+new_tag.string = "INSERT(0)"
+print("\n", soup)   # <b>Some text</b>
+
+soup.b.insert(0, new_tag)
+print("\n", soup)   #  <b><i>INSERT(0)</i>Some text</b>
+
+soup.b.insert(0, " String_Insert0 ")
+print("\n", soup)   # <b> String_Insert0 <i>INSERT(0)</i> Some text</b>
+
+# .append() - Append inside a tag
+soup = BeautifulSoup("<b>Some text</b>", "html.parser")
+new_tag = soup.new_tag("i")
+new_tag.string = "APPEND"
+print("\n", soup)   # <b>Some text</b>
+
+soup.b.append(new_tag)
+print("\n", soup)   #  <b>Some text<i>APPEND</i></b>
+
+soup.b.append(" String_Append ")
+print("\n", soup)   #  <b>Some text<i>APPEND</i> String_Append </b>
+
+ 
+###
+### .insert() - Add tag/text at numeric position
+###
+
+# .insert() works on the inside of a tag as if
+# it were a list. 
+
+# .contents views the inside of a tag as a list
+# and can be used as a guide.
+
+# .insert(0, t) - Puts t before .contents
+# .insert(1, t) - Puts t between .contents[0] and .contents[1] 
+# .insert(2, t) - Puts t between .contents[1] and .contents[2] 
+# .append(t)    - Puts t after .contents
+
+# tag.insert(len(tag.contents), t) puts
+# t at last position and is the same as 
+# tag.append(t)
+
+# As of version 4.12.3 .insert() does not accept 
+# negative numbers like a list does.
+# tag.insert(-1, new_tag) throws an exception
+
+from bs4 import BeautifulSoup
+markup = "<b>Some <u>more</u> text</b>"
+soup = BeautifulSoup(markup, "html.parser")
+print("soup: ", soup)
+
+print("# contents: ", soup.b.contents)  #  ['Some ', <u>more</u>, ' text']
+print("# contents len: ", len(soup.b.contents))  #  3
+
+def add_tag(s, pos, markup):
+  soup = BeautifulSoup(markup, "html.parser")
+  new_tag = soup.new_tag("i")
+  new_tag.string = s
+  soup.b.insert(pos, new_tag)
+  print("\n# ", soup)  
+
+add_tag("ZERO", 0, markup)
+add_tag("ONE", 1, markup)
+add_tag("TWO", 2, markup)
+add_tag("THREE", 3, markup)
+
+# Since 3 is the last position
+# soup.b.insert(3, new_tag) is the same as
+# soup.b.append(new_tag)
+
+# Here's the output:
+
+# contents:   ['Some ', <u>more</u>, ' text']
+# contents len:   3
+
+# <b><i>ZERO</i>Some <u>more</u> text</b>
+
+# <b>Some <i>ONE</i><u>more</u> text</b>
+
+# <b>Some <u>more</u><i>TWO</i> text</b>
+
+# <b>Some <u>more</u> text<i>THREE</i></b>
+
+ 
+###
+### .replace_with() - Replace tag and contents
+###
+
+from bs4 import BeautifulSoup
+markup = "<b>Some text</b>"
+soup = BeautifulSoup(markup, "html.parser")
+print("soup: ", soup)
+
+soup.b.replace_with(soup.new_tag("i"))
+soup.i.string = "New text"
+
+print(soup)  # <i>New text</i>"
+
+# replace_with() returns tag that was replaced.
+
+ 
+###
+### .wrap() - Wrap tag
+###
+
+from bs4 import BeautifulSoup
+markup = "<p>I wish I was bold.</p>"
+soup = BeautifulSoup(markup, "html.parser")
+print("soup: ", soup)
+
+#  Make the text inside the <p> tag bold
+soup.p.string.wrap(soup.new_tag("b"))
+print(soup)  # <p><b>I wish I was bold.</b></p>
+
+#  Now enclose the <p> tag in a <div> tag
+soup.p.wrap(soup.new_tag("div"))
+print(soup)  # <div><p><b>I wish I was bold.</b></p></div>
+
+ 
+###
+### .unwrap() - Remove tag, leave contents
+###
+
+from bs4 import BeautifulSoup
+markup = """
+<a href="http://example.com/">I linked to <i>example.com</i></a>
+"""
+soup = BeautifulSoup(markup, "html.parser")
+print("soup: ", soup)
+
+removed = soup.a.i.unwrap()
+
+print(soup)    # <a href="http://example.com/">I linked to example.com</a>
+print(removed) # <i></i>
+
+ 
+###
+### Replace tag, don't change contents
+###
+
+# This wraps a new <p> tag, and then unwraps old <div> tag
+
+from bs4 import BeautifulSoup
+markup = """
+<div><a href="http://example.com/">I linked to <i>example.com</i></a>;</div>
+"""
+soup = BeautifulSoup(markup, "html.parser")
+print("soup: ", soup)
+
+soup.div.wrap(soup.new_tag("p"))
+soup.p.div.unwrap()
+
+print(soup)    # <p><a href="http://example.com/">I linked to <i>example.com</i></a>;</p>
+
+
+###
+### .clear() - Leave tag, clear contents
+###
+
+from bs4 import BeautifulSoup
+markup = """
+<a href="http://example.com/">
+I linked to <i>example.com</i></a>
+"""
+soup = BeautifulSoup(markup, "html.parser")
+print("soup: ", soup)
+
+soup.a.clear()
+print(soup)   #  <a href="http://example.com/"></a>
+
+
+###
+### .extract() - Remove tag and contents
+###
+
+# Remove all javascript and stylesheet sections
+for tag in soup(["script", "style"]):
+  tag.extract()
+
+
+###
+### .decompose() - Just like extract(), but obliterates tag and contents
+###
+
+# Remove all javascript and stylesheet sections
+for tag in soup(["script", "style"]):
+  tag.decompose()  
+
